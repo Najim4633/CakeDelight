@@ -1,0 +1,623 @@
+﻿{
+  "info": {
+    "_postman_id": "cakedelight-capstone-2026",
+    "name": "CakeDelight - Complete API Verification",
+    "description": "Postman collection for verifying all business endpoints through the API Gateway. Start Catalog :8081, Order :8082, Rating :8083, Notification :8084, Gateway :8080. The collection uses Gateway URLs by default.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "cakeId",
+      "value": "1"
+    },
+    {
+      "key": "createdCakeId",
+      "value": ""
+    },
+    {
+      "key": "orderId",
+      "value": ""
+    },
+    {
+      "key": "customerEmail",
+      "value": "test@cakedelight.com"
+    },
+    {
+      "key": "ratingCakeId",
+      "value": "1"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Catalog / Cake Service",
+      "item": [
+        {
+          "name": "Get All Cakes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/cakes",
+              "host": ["{{baseUrl}}"],
+              "path": ["cakes"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Response is an array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Cake By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/cakes/{{cakeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["cakes", "{{cakeId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Cake ID matches', () => pm.expect(pm.response.json().id).to.eql(Number(pm.variables.get('cakeId'))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Filter Cakes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/cakes?category=Chocolate&minPrice=20&maxPrice=100",
+              "host": ["{{baseUrl}}"],
+              "path": ["cakes?category=Chocolate&minPrice=20&maxPrice=100"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Response is an array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Cake",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/cakes",
+              "host": ["{{baseUrl}}"],
+              "path": ["cakes"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Test Cake\",\n  \"description\": \"Created automatically for API verification\",\n  \"category\": \"Test\",\n  \"price\": 29.99,\n  \"isAvailable\": true,\n  \"imageUrl\": \"postman-test.jpg\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.expect(body.id).to.exist;",
+                  "pm.collectionVariables.set('createdCakeId', body.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Created Cake",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/cakes/{{createdCakeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["cakes", "{{createdCakeId}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Updated Cake\",\n  \"description\": \"Updated by Postman verification\",\n  \"category\": \"Test\",\n  \"price\": 34.99,\n  \"isAvailable\": true,\n  \"imageUrl\": \"postman-updated.jpg\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Name was updated', () => pm.expect(pm.response.json().name).to.eql('Postman Updated Cake'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Created Cake",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/cakes/{{createdCakeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["cakes", "{{createdCakeId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Non-Existing Cake",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/cakes/999999999",
+              "host": ["{{baseUrl}}"],
+              "path": ["cakes", "999999999"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Returns a client/server error for missing cake', () => pm.expect([404,400]).to.include(pm.response.code));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2. Order Service",
+      "item": [
+        {
+          "name": "Create Basket",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerEmail\": \"{{customerEmail}}\",\n  \"items\": [\n    {\n      \"cakeId\": 1,\n      \"cakeName\": \"Client Supplied Name\",\n      \"quantity\": 2,\n      \"price\": 1.0\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.expect(body.id).to.exist;",
+                  "pm.collectionVariables.set('orderId', body.id);",
+                  "pm.test('Order is pending', () => pm.expect(String(body.status)).to.eql('PENDING'));",
+                  "pm.test('Catalog price is not blindly trusted from request', () => pm.expect(Number(body.totalAmount)).to.be.greaterThan(2));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Order By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/orders/{{orderId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "{{orderId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Order ID matches', () => pm.expect(pm.response.json().id).to.eql(Number(pm.variables.get('orderId'))));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Orders By Customer",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/orders/customer/{{customerEmail}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "customer", "{{customerEmail}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Response is an array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Basket",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/orders/{{orderId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "{{orderId}}"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customerEmail\": \"{{customerEmail}}\",\n  \"items\": [\n    {\n      \"cakeId\": 1,\n      \"cakeName\": \"Ignored Client Name\",\n      \"quantity\": 1,\n      \"price\": 999.99\n    }\n  ]\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Order remains pending', () => pm.expect(String(pm.response.json().status)).to.eql('PENDING'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Checkout Order",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/orders/{{orderId}}/checkout",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "{{orderId}}", "checkout"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Order is completed', () => pm.expect(String(pm.response.json().status)).to.eql('COMPLETED'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Non-Existing Order",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/orders/999999999",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "999999999"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Returns 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3. Rating Service",
+      "item": [
+        {
+          "name": "Submit Rating",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ratings",
+              "host": ["{{baseUrl}}"],
+              "path": ["ratings"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cakeId\": 1,\n  \"userEmail\": \"{{customerEmail}}\",\n  \"score\": 5,\n  \"comment\": \"Excellent cake - Postman verification\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Cake ID matches', () => pm.expect(pm.response.json().cakeId).to.eql(1));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Ratings For Cake",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ratings/cake/{{ratingCakeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["ratings", "cake", "{{ratingCakeId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Response is an array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Average Rating",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/ratings/cake/{{ratingCakeId}}/average",
+              "host": ["{{baseUrl}}"],
+              "path": ["ratings", "cake", "{{ratingCakeId}}", "average"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Invalid Rating Score",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/ratings",
+              "host": ["{{baseUrl}}"],
+              "path": ["ratings"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cakeId\": 1,\n  \"userEmail\": \"{{customerEmail}}\",\n  \"score\": 6,\n  \"comment\": \"This should fail validation\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Validation rejects score > 5', () => pm.expect(pm.response.code).to.be.oneOf([400,422]));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "4. Notification Service",
+      "item": [
+        {
+          "name": "Get All Notifications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Response is an array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Notifications By Customer",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/customer/{{customerEmail}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications", "customer", "{{customerEmail}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Response is an array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Gateway & Actuator Verification",
+      "item": [
+        {
+          "name": "Gateway - Routes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/gateway/routes",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "gateway", "routes"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('Catalog route exists', () => pm.expect(body.some(r => r.route_id === 'catalog-service')).to.be.true);",
+                  "pm.test('Order route exists', () => pm.expect(body.some(r => r.route_id === 'order-service')).to.be.true);",
+                  "pm.test('Rating route exists', () => pm.expect(body.some(r => r.route_id === 'rating-service')).to.be.true);",
+                  "pm.test('Notification route exists', () => pm.expect(body.some(r => r.route_id === 'notification-service')).to.be.true);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Gateway - Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/actuator/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["actuator", "health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

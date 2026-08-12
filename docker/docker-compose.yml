@@ -1,0 +1,102 @@
+﻿version: "3.8"
+
+networks:
+  cakedelight-net:
+    driver: bridge
+
+services:
+  # 1. Database Infrastructure
+  mysql-db:
+    image: mysql:latest
+    container_name: mysql-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: "Najim@4633"
+    ports:
+      - "3306:3306"
+    networks:
+      - cakedelight-net
+
+  # 2. Message Broker Infrastructure
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    restart: always
+    ports:
+      - "5672:5672" # AMQP protocol port
+      - "15672:15672" # Management UI port
+    networks:
+      - cakedelight-net
+
+  # 3. API Gateway
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      - catalog-service
+      - order-service
+      - rating-service
+      - notification-service
+    networks:
+      - cakedelight-net
+
+  # 4. Catalog Microservice
+  catalog-service:
+    build: ./catalog-service
+    container_name: catalog-service
+    ports:
+      - "8081:8081"
+    environment:
+      # Overrides 'localhost' to use Docker's internal DNS and auto-creates the schema
+      SPRING_DATASOURCE_URL: "jdbc:mysql://mysql-db:3306/cakedelight_catalog?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=false"
+    depends_on:
+      - mysql-db
+    networks:
+      - cakedelight-net
+
+  # 5. Order Microservice
+  order-service:
+    build: ./order-service
+    container_name: order-service
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_DATASOURCE_URL: "jdbc:mysql://mysql-db:3306/cakedelight_order?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=false"
+      SPRING_RABBITMQ_HOST: "rabbitmq"
+      SPRING_RABBITMQ_LISTENER_SIMPLE_AUTO_STARTUP: "true" # Reactivates RabbitMQ
+    depends_on:
+      - mysql-db
+      - rabbitmq
+    networks:
+      - cakedelight-net
+
+  # 6. Rating Microservice
+  rating-service:
+    build: ./rating-service
+    container_name: rating-service
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_DATASOURCE_URL: "jdbc:mysql://mysql-db:3306/cakedelight_rating?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=false"
+    depends_on:
+      - mysql-db
+    networks:
+      - cakedelight-net
+
+  # 7. Notification Microservice
+  notification-service:
+    build: ./notification-service
+    container_name: notification-service
+    ports:
+      - "8084:8084"
+    environment:
+      SPRING_DATASOURCE_URL: "jdbc:mysql://mysql-db:3306/cakedelight_notification?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=false"
+      SPRING_RABBITMQ_HOST: "rabbitmq"
+      SPRING_RABBITMQ_LISTENER_SIMPLE_AUTO_STARTUP: "true" # Reactivates RabbitMQ
+    depends_on:
+      - mysql-db
+      - rabbitmq
+    networks:
+      - cakedelight-net
