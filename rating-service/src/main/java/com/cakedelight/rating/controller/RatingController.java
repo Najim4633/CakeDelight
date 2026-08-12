@@ -1,4 +1,4 @@
-package com.cakedelight.rating.service;
+package com.cakedelight.rating.controller;
 
 import com.cakedelight.rating.dto.AverageRatingResponse;
 import com.cakedelight.rating.dto.RatingRequest;
