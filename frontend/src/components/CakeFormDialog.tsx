@@ -24,6 +24,7 @@ type Props = {
 
 const emptyForm = {
   name: "",
+  description: "",
   category: "",
   price: "",
   imageUrl: PLACEHOLDER_IMAGE,
@@ -39,6 +40,7 @@ export function CakeFormDialog({ open, onOpenChange, cake, onSubmit }: Props) {
       cake
         ? {
             name: cake.name,
+            description: cake.description ?? "",
             category: cake.category,
             price: String(cake.price),
             imageUrl: cake.imageUrl ?? PLACEHOLDER_IMAGE,
@@ -53,11 +55,11 @@ export function CakeFormDialog({ open, onOpenChange, cake, onSubmit }: Props) {
     onSubmit({
       id: cake?.id ?? Date.now(),
       name: form.name.trim(),
+      description: form.description.trim(),
       category: form.category.trim() || "Uncategorised",
       price: Number(form.price) || 0,
       available: form.available,
       imageUrl: form.imageUrl.trim() || PLACEHOLDER_IMAGE,
-      description: cake?.description ?? "",
     });
     onOpenChange(false);
   };
@@ -86,6 +88,16 @@ export function CakeFormDialog({ open, onOpenChange, cake, onSubmit }: Props) {
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="cake-description">Description</Label>
+            <Input
+              id="cake-description"
+              placeholder="Rich Belgian chocolate layers..."
+              value={form.description}
+              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+            />
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="cake-category">Category</Label>
             <Input
               id="cake-category"
@@ -109,7 +121,7 @@ export function CakeFormDialog({ open, onOpenChange, cake, onSubmit }: Props) {
             <Input
               id="cake-price"
               type="number"
-              min="0"
+              min="0.01"
               step="0.01"
               required
               value={form.price}

@@ -13,9 +13,6 @@ import pistachio from "@/assets/cake-pistachio.jpg";
 export const API_BASE_URL =
   (import.meta.env["VITE_API_BASE_URL"] as string | undefined) ?? "http://localhost:8080";
 
-// Set to false to connect directly to your live Kubernetes API Gateway
-export const USE_MOCK = false;
-
 /* ------------------------------------------------------------------ */
 /* Types                                                              */
 /* ------------------------------------------------------------------ */
@@ -47,7 +44,12 @@ export type Review = {
   review: string;
 };
 
-export type OrderItem = { cakeId: number; quantity: number };
+export type OrderItem = {
+  cakeId: number;
+  cakeName: string;
+  quantity: number;
+  price: number;
+};
 
 export type OrderPayload = {
   customerEmail: string;
@@ -99,94 +101,37 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   return (await res.json()) as T;
 }
 
-const delay = (ms = 250) => new Promise((r) => setTimeout(r, ms));
-
 /* ------------------------------------------------------------------ */
-/* Mock Fallback Data                                                 */
+/* Image Asset Resolver Logic                                         */
 /* ------------------------------------------------------------------ */
 
-const MOCK_CAKES: Cake[] = [
-  {
-    id: 1,
-    name: "Belgian Chocolate Truffle",
-    category: "Chocolate",
-    price: 550.0,
-    available: true,
-    imageUrl: chocolate,
-    description: "Dark Belgian couverture layered with silky truffle ganache and a whisper of sea salt.",
-  },
-  {
-    id: 2,
-    name: "Strawberry Cream Gateau",
-    category: "Fruit",
-    price: 480.0,
-    available: true,
-    imageUrl: strawberry,
-    description: "Airy sponge, hand-whipped cream and sun-ripened strawberries picked each morning.",
-  },
-  {
-    id: 3,
-    name: "Classic Vanilla Bean",
-    category: "Classic",
-    price: 420.0,
-    available: true,
-    imageUrl: vanilla,
-    description: "Madagascan vanilla bean sponge finished with cloud-soft French buttercream.",
-  },
-  {
-    id: 4,
-    name: "Velvet Rouge",
-    category: "Red Velvet",
-    price: 620.0,
-    available: true,
-    imageUrl: redvelvet,
-    description: "Deep cocoa-red crumb with tangy cream cheese frosting and velvet shards.",
-  },
-  {
-    id: 5,
-    name: "Pistachio Rose",
-    category: "Speciality",
-    price: 690.0,
-    available: true,
-    imageUrl: pistachio,
-    description: "Sicilian pistachio sponge, rosewater cream and sugared petals.",
-  },
-  {
-    id: 6,
-    name: "Midnight Mocha",
-    category: "Chocolate",
-    price: 575.0,
-    available: false,
-    imageUrl: chocolate,
-    description: "Single-origin espresso folded through dark chocolate mousse.",
-  },
-];
+// Maps database file names to the bundled Vite assets from src/assets.
+// If you add new images to the assets folder, import them at the top and map them here.
+const imageMap: Record<string, string> = {
+  "chocolate-truffle.jpg": chocolate,
+  "choco-truffle.jpg": chocolate,
+  "cake-chocolate.jpg": chocolate,
+  "strawberry-cream.jpg": strawberry,
+  "cake-strawberry.jpg": strawberry,
+  "vanilla-bean.jpg": vanilla,
+  "cake-vanilla.jpg": vanilla,
+  "red-velvet.jpg": redvelvet,
+  "cake-redvelvet.jpg": redvelvet,
+  "pistachio-rose.jpg": pistachio,
+  "cake-pistachio.jpg": pistachio,
+};
 
-const MOCK_REVIEWS: Review[] = [
-  {
-    id: 1,
-    cakeId: 1,
-    customerEmail: "aarav@example.com",
-    rating: 5,
-    review: "Delicious! The ganache was unbelievably smooth — ordering again for my anniversary.",
-  },
-  {
-    id: 2,
-    cakeId: 1,
-    customerEmail: "meera@example.com",
-    rating: 4,
-    review: "Rich and not too sweet. Delivery was right on time.",
-  },
-];
+function resolveImageUrl(dbImageUrl: string | undefined): string {
+  if (!dbImageUrl) return chocolate; // Fallback default image
+  if (dbImageUrl.startsWith("http")) return dbImageUrl; // Allow external URLs
 
-const MOCK_ORDERS: Order[] = [
-  { id: 1, totalAmount: 550.0, status: "COMPLETED", createdAt: "2026-08-12T10:00:00" },
-  { id: 2, totalAmount: 1100.0, status: "PENDING", createdAt: "2026-08-10T16:32:00" },
-];
+  // If the database string matches a mapped key, use the local asset
+  if (imageMap[dbImageUrl]) {
+    return imageMap[dbImageUrl];
+  }
 
-const MOCK_NOTIFICATIONS: Notification[] = [
-  { id: 1, message: "Your order #1 has been completed successfully", read: false },
-];
+  return chocolate; // Fallback if the database name doesn't match the map
+}
 
 /* ------------------------------------------------------------------ */
 /* Backend API Endpoints                                              */
@@ -194,42 +139,56 @@ const MOCK_NOTIFICATIONS: Notification[] = [
 
 // 1. Catalog Service Endpoints (/cakes)
 export async function getCakes(): Promise<Cake[]> {
-  if (USE_MOCK) {
-    await delay();
-    return MOCK_CAKES;
-  }
-  return apiFetch<Cake[]>("/cakes");
+  // Use 'any' temporarily to intercept the raw Spring Boot JSON structure
+  const rawData = await apiFetch<any[]>("/cakes");
+
+  return rawData.map((cake: any) => ({
+    ...cake,
+    // Safely map Spring Boot's "isAvailable" to React's "available"
+    available: cake.isAvailable ?? cake.available ?? false,
+    // Safely map and resolve the image URL
+    imageUrl: resolveImageUrl(cake.imageUrl ?? cake.image_url),
+  }));
 }
 
 export async function addCake(cake: CakeInput): Promise<Cake> {
-  if (USE_MOCK) {
-    await delay();
-    const created = { ...cake, id: Date.now() };
-    MOCK_CAKES.push(created);
-    return created;
-  }
-  return apiFetch<Cake>("/cakes", {
+  // Re-map the frontend state back to the backend's expected structure
+  const payload = {
+    ...cake,
+    isAvailable: cake.available,
+  };
+
+  const created = await apiFetch<any>("/cakes", {
     method: "POST",
-    body: JSON.stringify(cake),
+    body: JSON.stringify(payload),
   });
+
+  return {
+    ...created,
+    available: created.isAvailable ?? created.available ?? false,
+    imageUrl: resolveImageUrl(created.imageUrl ?? created.image_url),
+  };
 }
 
 export async function updateCake(id: number, cake: CakeInput): Promise<Cake> {
-  if (USE_MOCK) {
-    await delay();
-    return { ...cake, id };
-  }
-  return apiFetch<Cake>(`/cakes/${id}`, {
+  const payload = {
+    ...cake,
+    isAvailable: cake.available,
+  };
+
+  const updated = await apiFetch<any>(`/cakes/${id}`, {
     method: "PUT",
-    body: JSON.stringify(cake),
+    body: JSON.stringify(payload),
   });
+
+  return {
+    ...updated,
+    available: updated.isAvailable ?? updated.available ?? false,
+    imageUrl: resolveImageUrl(updated.imageUrl ?? updated.image_url),
+  };
 }
 
 export async function deleteCake(id: number): Promise<void> {
-  if (USE_MOCK) {
-    await delay();
-    return;
-  }
   return apiFetch<void>(`/cakes/${id}`, {
     method: "DELETE",
   });
@@ -237,41 +196,49 @@ export async function deleteCake(id: number): Promise<void> {
 
 // 2. Rating Service Endpoints (/ratings)
 export async function getReviews(cakeId: number): Promise<Review[]> {
-  if (USE_MOCK) {
-    await delay();
-    return MOCK_REVIEWS.filter((r) => r.cakeId === cakeId);
-  }
   try {
-    return await apiFetch<Review[]>(`/ratings/cake/${cakeId}`);
+    // Fetch raw backend RatingResponse
+    const rawData = await apiFetch<any[]>(`/ratings/cake/${cakeId}`);
+
+    // Map backend fields to frontend UI fields
+    return rawData.map((item) => ({
+      id: item.id,
+      cakeId: item.cakeId,
+      customerEmail: item.userEmail, // Map userEmail -> customerEmail
+      rating: item.score, // Map score -> rating
+      review: item.comment, // Map comment -> review
+    }));
   } catch {
     return [];
   }
 }
 
 export async function createReview(input: Review): Promise<Review> {
-  if (USE_MOCK) {
-    await delay();
-    const created = { ...input, id: Date.now() };
-    MOCK_REVIEWS.push(created);
-    return created;
-  }
-  return apiFetch<Review>("/ratings", {
+  // Map frontend UI fields to backend RatingRequest DTO
+  const payload = {
+    cakeId: input.cakeId,
+    userEmail: input.customerEmail, // Map customerEmail -> userEmail
+    score: input.rating, // Map rating -> score
+    comment: input.review, // Map review -> comment
+  };
+
+  const created = await apiFetch<any>("/ratings", {
     method: "POST",
-    body: JSON.stringify(input),
+    body: JSON.stringify(payload),
   });
+
+  // Map the response back to the frontend shape
+  return {
+    id: created.id,
+    cakeId: created.cakeId,
+    customerEmail: created.userEmail,
+    rating: created.score,
+    review: created.comment,
+  };
 }
 
 // 3. Order Service Endpoints (/orders)
 export async function placeOrder(payload: OrderPayload): Promise<Order> {
-  if (USE_MOCK) {
-    await delay();
-    return {
-      id: Math.floor(Math.random() * 9000) + 1000,
-      totalAmount: 0,
-      status: "PENDING",
-      createdAt: new Date().toISOString(),
-    };
-  }
   return apiFetch<Order>("/orders", {
     method: "POST",
     body: JSON.stringify(payload),
@@ -279,31 +246,23 @@ export async function placeOrder(payload: OrderPayload): Promise<Order> {
 }
 
 export async function checkoutOrder(orderId: number): Promise<Order> {
-  if (USE_MOCK) {
-    await delay();
-    return { id: orderId, totalAmount: 0, status: "COMPLETED", createdAt: new Date().toISOString() };
-  }
   return apiFetch<Order>(`/orders/${orderId}/checkout`, {
     method: "POST",
   });
 }
 
 export async function getOrders(customerEmail: string): Promise<Order[]> {
-  if (USE_MOCK) {
-    await delay();
-    return MOCK_ORDERS;
-  }
   return apiFetch<Order[]>(`/orders/customer/${encodeURIComponent(customerEmail)}`);
 }
 
 // 4. Notification Service Endpoints (/notifications)
+// 4. Notification Service Endpoints (/notifications)
 export async function getNotifications(customerEmail: string): Promise<Notification[]> {
-  if (USE_MOCK) {
-    await delay();
-    return MOCK_NOTIFICATIONS;
-  }
   try {
-    return await apiFetch<Notification[]>(`/notifications/${encodeURIComponent(customerEmail)}`);
+    // Added /customer/ to match the Java @GetMapping("/customer/{email}")
+    return await apiFetch<Notification[]>(
+      `/notifications/customer/${encodeURIComponent(customerEmail)}`,
+    );
   } catch {
     return [];
   }

@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
-import { Bell, PackageCheck } from "lucide-react";
+import { Bell, PackageCheck, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 import { Navbar } from "@/components/Navbar";
 import { CartSheet } from "@/components/CartSheet";
@@ -8,22 +8,29 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   formatCurrency,
   getNotifications,
   getOrders,
+  checkoutOrder,
   type Notification,
   type Order,
 } from "@/lib/api";
 
+type DashboardSearch = {
+  email?: string;
+};
+
 export const Route = createFileRoute("/dashboard")({
+  validateSearch: (search: Record<string, unknown>): DashboardSearch => {
+    const searchParams: DashboardSearch = {};
+    // Use bracket notation ['email'] to satisfy TypeScript's index signature rule
+    if (typeof search["email"] === "string") {
+      searchParams.email = search["email"];
+    }
+    return searchParams;
+  },
   head: () => ({
     meta: [
       { title: "Customer Dashboard — CakeDelight" },
@@ -45,11 +52,34 @@ const statusVariant = (status: string) =>
   status === "COMPLETED" ? "default" : status === "CANCELLED" ? "destructive" : "secondary";
 
 function Dashboard() {
-  const [email, setEmail] = useState("");
+  const search = Route.useSearch();
+  const [email, setEmail] = useState(search.email ?? "");
   const [loading, setLoading] = useState(false);
+  const [processingId, setProcessingId] = useState<number | null>(null);
   const [loadedFor, setLoadedFor] = useState<string | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+
+  const fetchUserData = async (targetEmail: string) => {
+    setLoading(true);
+    try {
+      const [o, n] = await Promise.all([getOrders(targetEmail), getNotifications(targetEmail)]);
+      setOrders(o);
+      setNotifications(n);
+      setLoadedFor(targetEmail);
+    } catch {
+      toast.error("Couldn't load your account right now.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Automatically fetch account details if email is passed via URL search parameters
+  useEffect(() => {
+    if (search.email) {
+      fetchUserData(search.email);
+    }
+  }, [search.email]);
 
   const load = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,16 +87,24 @@ function Dashboard() {
       toast.error("Enter your email to load your account.");
       return;
     }
-    setLoading(true);
+    await fetchUserData(email.trim());
+  };
+
+  const handleCheckout = async (orderId: number) => {
+    setProcessingId(orderId);
     try {
-      const [o, n] = await Promise.all([getOrders(email.trim()), getNotifications(email.trim())]);
-      setOrders(o);
-      setNotifications(n);
-      setLoadedFor(email.trim());
-    } catch {
-      toast.error("Couldn't load your account right now.");
+      const updatedOrder = await checkoutOrder(orderId);
+
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId ? { ...o, status: updatedOrder.status } : o)),
+      );
+      toast.success(`Payment successful! Order #${orderId} is now completed.`);
+    } catch (error) {
+      toast.error(
+        `Failed to process payment for Order #${orderId}. Make sure RabbitMQ or your backend services are online.`,
+      );
     } finally {
-      setLoading(false);
+      setProcessingId(null);
     }
   };
 
@@ -120,6 +158,18 @@ function Dashboard() {
                         <p className="text-xs text-muted-foreground">
                           {new Date(o.createdAt).toLocaleString()}
                         </p>
+                        {o.status === "PENDING" && (
+                          <Button
+                            size="sm"
+                            variant="default"
+                            className="mt-2 h-7 px-3 text-xs"
+                            disabled={processingId === o.id}
+                            onClick={() => handleCheckout(o.id)}
+                          >
+                            <CreditCard className="mr-1.5 h-3 w-3" />
+                            {processingId === o.id ? "Processing..." : "Pay Now"}
+                          </Button>
+                        )}
                       </div>
                       <div className="text-right">
                         <p className="font-serif text-base text-primary">
@@ -150,7 +200,9 @@ function Dashboard() {
                     <div
                       key={n.id}
                       className={`rounded-xl border p-3 text-sm ${
-                        n.read ? "border-border text-muted-foreground" : "border-accent/40 bg-accent/10"
+                        n.read
+                          ? "border-border text-muted-foreground"
+                          : "border-accent/40 bg-accent/10"
                       }`}
                     >
                       {n.message}

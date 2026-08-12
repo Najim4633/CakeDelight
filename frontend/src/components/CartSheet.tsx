@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "@tanstack/react-router"; // 1. Import router navigation
 import { Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -19,6 +20,7 @@ export function CartSheet() {
   const { items, total, isOpen, setOpen, setQuantity, removeItem, clear } = useCart();
   const [email, setEmail] = useState("");
   const [placing, setPlacing] = useState(false);
+  const navigate = useNavigate(); // 2. Initialize the navigation hook
 
   const checkout = async () => {
     if (!email.trim()) {
@@ -27,15 +29,25 @@ export function CartSheet() {
     }
     const payload: OrderPayload = {
       customerEmail: email.trim(),
-      items: items.map((i) => ({ cakeId: i.cake.id, quantity: i.quantity })),
+      items: items.map((i) => ({
+        cakeId: i.cake.id,
+        cakeName: i.cake.name,
+        price: i.cake.price,
+        quantity: i.quantity,
+      })),
     };
+
     setPlacing(true);
     try {
       const order = await placeOrder(payload);
       clear();
       setOpen(false);
-      toast.success(`Order #${order.id} placed!`, {
-        description: `A confirmation is on its way to ${payload.customerEmail}.`,
+      toast.success(`Order #${order.id} placed! Complete your payment in the dashboard.`);
+
+      // 3. Redirect to dashboard and pass the email in the search query
+      navigate({
+        to: "/dashboard",
+        search: { email: payload.customerEmail },
       });
     } catch {
       toast.error("We couldn't place your order. Please try again.");
@@ -43,6 +55,8 @@ export function CartSheet() {
       setPlacing(false);
     }
   };
+
+  // ... (keep the rest of your JSX layout code unchanged)
 
   return (
     <Sheet open={isOpen} onOpenChange={setOpen}>
@@ -126,11 +140,7 @@ export function CartSheet() {
               onChange={(e) => setEmail(e.target.value)}
             />
           </div>
-          <Button
-            className="w-full"
-            disabled={items.length === 0 || placing}
-            onClick={checkout}
-          >
+          <Button className="w-full" disabled={items.length === 0 || placing} onClick={checkout}>
             {placing ? "Placing order…" : "Checkout"}
           </Button>
         </div>

@@ -10,10 +10,9 @@ import { CakeFormDialog } from "@/components/CakeFormDialog";
 import { CatalogToolbar, type SortOption } from "@/components/CatalogToolbar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { getCakes, type Cake } from "@/lib/api";
+import { getCakes, addCake, updateCake, deleteCake, type Cake } from "@/lib/api";
 import { useCart } from "@/lib/cart";
 import heroImage from "@/assets/hero-bakery.jpg";
-
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -46,7 +45,9 @@ function Index() {
   const { addItem, setOpen } = useCart();
 
   useEffect(() => {
-    getCakes().then((data) => setCakes(data.map((c) => ({ ...c }))));
+    getCakes()
+      .then((data) => setCakes(data.map((c) => ({ ...c }))))
+      .catch(() => toast.error("Failed to load catalog. Is the backend running?"));
   }, []);
 
   const categories = useMemo(
@@ -73,20 +74,44 @@ function Index() {
     setDetailsOpen(true);
   };
 
-  const handleDelete = (cake: Cake) => {
-    setCakes((prev) => (prev ?? []).filter((c) => c.id !== cake.id));
-    toast.success(`${cake.name} removed from the catalogue`);
+  const handleDelete = async (cake: Cake) => {
+    try {
+      // 1. Tell the Spring Boot backend to delete the record
+      await deleteCake(cake.id);
+
+      // 2. Remove it from the UI immediately upon success
+      setCakes((prev) => (prev ?? []).filter((c) => c.id !== cake.id));
+      toast.success(`${cake.name} removed from the catalogue`);
+    } catch (error) {
+      toast.error(`Failed to delete ${cake.name}. Please try again.`);
+    }
   };
 
-  const handleSaveCake = (cake: Cake) => {
-    setCakes((prev) => {
-      const list = prev ?? [];
-      return list.some((c) => c.id === cake.id)
-        ? list.map((c) => (c.id === cake.id ? cake : c))
-        : [...list, cake];
-    });
-    toast.success(editing ? `${cake.name} updated` : `${cake.name} added to the catalogue`);
-    setEditing(null);
+  const handleSaveCake = async (cake: Cake) => {
+    try {
+      if (editing) {
+        // 1. Tell Spring Boot to update the existing record
+        const updatedCake = await updateCake(cake.id, cake);
+
+        // 2. Update the UI with the confirmed backend data
+        setCakes((prev) => {
+          const list = prev ?? [];
+          return list.map((c) => (c.id === updatedCake.id ? updatedCake : c));
+        });
+        toast.success(`${updatedCake.name} updated successfully`);
+      } else {
+        // 1. Tell Spring Boot to create a brand new record
+        const newCake = await addCake(cake);
+
+        // 2. Add the newly created record (with its real database ID) to the UI
+        setCakes((prev) => [...(prev ?? []), newCake]);
+        toast.success(`${newCake.name} added to the catalogue`);
+      }
+    } catch (error) {
+      toast.error("Failed to save the cake to the database.");
+    } finally {
+      setEditing(null);
+    }
   };
 
   return (
@@ -198,4 +223,3 @@ function Index() {
     </div>
   );
 }
-

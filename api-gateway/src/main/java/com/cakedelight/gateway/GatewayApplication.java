@@ -21,7 +21,7 @@ public class GatewayApplication {
 
         CorsConfiguration config = new CorsConfiguration();
 
-        config.setAllowedOrigins(List.of("http://localhost:5173"));
+        config.setAllowedOrigins(List.of("http://localhost:8085"));
         config.setAllowedMethods(List.of(
                 "GET",
                 "POST",
