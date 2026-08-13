@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: catalog-service
-          image: catalog-service:latest
+          image: docker-catalog-service:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8081

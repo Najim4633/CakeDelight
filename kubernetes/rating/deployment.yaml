@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: rating-service
-          image: rating-service:latest
+          image: docker-rating-service:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8083
