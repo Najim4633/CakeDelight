@@ -1,10 +1,9 @@
-# Stage 1: Build the React application
+# Stage 1: Build
 FROM node:22-alpine AS builder
 
 WORKDIR /app
 
 COPY package*.json ./
-
 RUN npm install
 
 COPY . .
@@ -12,12 +11,13 @@ COPY . .
 RUN npm run build
 
 
-# Stage 2: Serve the app using Nginx
-FROM nginx:alpine
+# Stage 2: Run TanStack Start/Nitro server
+FROM node:22-alpine
 
-COPY --from=builder /app/.output/public /usr/share/nginx/html
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+WORKDIR /app
 
-EXPOSE 80
+COPY --from=builder /app/.output ./.output
 
-CMD ["nginx", "-g", "daemon off;"]
+EXPOSE 3000
+
+CMD ["node", ".output/server/index.mjs"]

@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 @FeignClient(
         name = "catalog-service",
-        url = "${CATALOG_SERVICE_URL:http://localhost:8081}"
+        url = "${CATALOG_SERVICE_URL:http://catalog-service:8081}"
 )
 public interface CatalogClient {
 

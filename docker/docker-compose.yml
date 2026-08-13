@@ -42,6 +42,10 @@
       - "8082:8082"
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: guest
+      SPRING_RABBITMQ_PASSWORD: guest
     depends_on:
       - mysql-db
       - rabbitmq
@@ -69,6 +73,10 @@
       - "8084:8084"
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: guest
+      SPRING_RABBITMQ_PASSWORD: guest
     depends_on:
       - mysql-db
       - rabbitmq
@@ -80,7 +88,7 @@
       context: ../api-gateway
     container_name: cakedelight-gateway
     ports:
-      - "8080:8080"
+      - "8090:8080"
     depends_on:
       - catalog-service
       - order-service
@@ -94,7 +102,7 @@
       context: ../frontend
     container_name: cakedelight-frontend
     ports:
-      - "8085:80"
+      - "8085:3000"
     depends_on:
       - api-gateway
     networks:

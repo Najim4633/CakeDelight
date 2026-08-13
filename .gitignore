@@ -63,11 +63,7 @@ Thumbs.db
 *.swp
 *.bak
 
-# =========================
-# Environment Files
-# =========================
-.env
-.env.*
+
 
 # =========================
 # H2 Database Files

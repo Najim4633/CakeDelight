@@ -1,4 +1,4 @@
-# 1. The Network Bridge (Service)
+# MySQL Service
 apiVersion: v1
 kind: Service
 metadata:
@@ -12,7 +12,20 @@ spec:
       targetPort: 3306
 
 ---
-# 2. The Database Container (Deployment)
+# MySQL PersistentVolumeClaim
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+
+---
+# MySQL Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -32,9 +45,19 @@ spec:
           image: mysql:8.0
           ports:
             - containerPort: 3306
+
           env:
             - name: MYSQL_ROOT_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: cakedelight-secrets
                   key: mysql-root-password
+
+          volumeMounts:
+            - name: mysql-storage
+              mountPath: /var/lib/mysql
+
+      volumes:
+        - name: mysql-storage
+          persistentVolumeClaim:
+            claimName: mysql-pvc
