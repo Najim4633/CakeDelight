@@ -773,11 +773,11 @@ Base path:
 Typical operations:
 
 ```http
-POST   /orders
-GET    /orders
-GET    /orders/{id}
-PUT    /orders/{id}
-DELETE /orders/{id}
+POST /orders
+GET  /orders/{id}
+GET  /orders/customer/{email}
+PUT  /orders/{id}
+POST /orders/{id}/checkout
 ```
 
 ## ⭐ Rating Service
@@ -791,11 +791,9 @@ Base path:
 Typical operations:
 
 ```http
-POST   /ratings
-GET    /ratings
-GET    /ratings/{id}
-PUT    /ratings/{id}
-DELETE /ratings/{id}
+POST /ratings
+GET  /ratings/cake/{cakeId}
+GET  /ratings/cake/{cakeId}/average
 ```
 
 ## 🔔 Notification Service
@@ -809,11 +807,8 @@ Base path:
 Typical operations:
 
 ```http
-GET    /notifications
-GET    /notifications/{id}
-POST   /notifications
-PUT    /notifications/{id}
-DELETE /notifications/{id}
+GET /notifications
+GET /notifications/customer/{email}
 ```
 
 > The exact request and response bodies should follow the DTOs and controller mappings implemented in the respective services.
